@@ -1,0 +1,82 @@
+library(ORCH)
+## Set page width
+options(width = 80)
+getwd()
+hdfs.ls()
+
+## ***************************Data transfer of csv file to local file system
+dir()
+l.csv<-"l.csv"
+# Write out the cars dataset into local file
+write.csv(cars, row.names=FALSE, file=l.csv)
+dir()
+
+# *************************Upload local file  into HDFS
+hdfs.ls()
+hdfs.cars <- hdfs.upload(filename=l.csv, dfs.id="hdfs.cars",key.sep=",",data.frame=T)
+hdfs.ls()
+
+# ************************Print out the HDFS obect
+hdfs.get(hdfs.cars)
+
+# Copy back file from HDFS file into local disc
+l_2.csv <- hdfs.download(dfs.id=hdfs.cars, filename="l_2.csv")
+dir()
+
+## Demonstrate data transfer between HDFS and ORACLE DB
+# Write out the cars dataset into this file
+# via Sqoop
+orch.connect("moviedemo", "orcl", "bigdatalite", "welcome1", secure=F)
+
+# Move the cars data in HDFS to the DB table called CARS_TAB using sqoop (default)
+hdfs.ls()
+hdfs.pull(dfs.id = hdfs.cars, 
+    db.name = "CARS_TAB",
+    overwrite = TRUE)
+
+# Check the class of returned ORACLE DB object
+#library(ORE)
+# Connects to the Oracle Database 12c 
+#options(ore.warn.order = FALSE)
+#ore.connect("moviedemo","orcl","bigdatalite", "welcome1", all=TRUE)
+ore.sync(table="CARS_TAB")
+class(CARS_TAB)
+
+# *********************************************Print the contents
+CARS_TAB
+
+# *********************************************Put back data from Oracle DB into HDFS using sqoop
+
+hdfs.cars_2 <- hdfs.push(
+                    x = CARS_TAB,
+                    dfs.name = "hdfs.cars_2",
+                    overwrite = TRUE)
+
+# *******************************************Locate the file in in HDFS
+hdfs.ls()
+
+
+# *******************************************Display the HDFS data 
+hdfs.get(hdfs.cars_2)
+
+
+# Cleanups
+# Remove the HDFS objects
+hdfs.ls()
+hdfs.rm("hdfs.cars")
+hdfs.rm("hdfs.cars_2")
+hdfs.ls()
+# Remove Oracle DB tables
+ore.drop(table=c("CARS_TAB"))
+
+#Remove from Local file system
+unlink("l.csv")
+unlink("l_2.csv")
+dir()
+-- 
+ 
+Lorea Arrizabalaga
+Solutions Architect
+Oracle Advanced Analytics
+Mobile: 07789906947
+Web: Oracle Advanced Analytics 
